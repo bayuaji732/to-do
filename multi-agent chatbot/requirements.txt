@@ -1,0 +1,29 @@
+# Core Dependencies
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+
+# LLM & Agent Framework
+langchain
+langchain[openai]
+langgraph
+
+# Data Processing
+pandas
+duckdb
+numpy
+
+# Visualization
+plotly
+matplotlib
+
+# Frontend
+streamlit
+
+# Utilities
+python-dotenv
+typing-extensions
+
+# Evaluation
+scikit-learn
