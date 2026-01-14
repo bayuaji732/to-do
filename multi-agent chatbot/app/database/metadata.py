@@ -2,9 +2,11 @@
 Database metadata management for schema-aware querying.
 """
 from dataclasses import dataclass
+import re
 from typing import List, Dict, Optional
 from enum import Enum
-
+import pandas as pd
+from pathlib import Path
 
 class DataType(Enum):
     """Supported data types in the dataset."""
@@ -46,8 +48,9 @@ class TableMetadata:
     
     def get_column(self, name: str) -> Optional[ColumnMetadata]:
         """Get column metadata by name."""
+        normalized = normalize_column_name(name)
         for col in self.columns:
-            if col.name.lower() == name.lower():
+            if col.name == normalized:
                 return col
         return None
     
@@ -65,138 +68,124 @@ class TableMetadata:
 
 
 def build_sp500_metadata() -> TableMetadata:
-    """
-    Build metadata for S&P 500 dataset.
-    This should be constructed after inspecting the actual dataset.
-    """
+    """Build metadata for S&P 500 dataset by auto-detecting from CSV."""
+    csv_path = Path("data/sp500_companies.csv")
+    
+    if not csv_path.exists():
+        raise FileNotFoundError(f"CSV file not found at {csv_path}")
+    
+    # Auto-detect from CSV
+    df = pd.read_csv(csv_path)
+    columns = []
+    
+    # Define column descriptions and units
+    column_info = {
+        "Symbol": {
+            "description": "Stock ticker symbol",
+            "unit": None
+        },
+        "Name": {
+            "description": "Company name",
+            "unit": None
+        },
+        "Sector": {
+            "description": "GICS sector classification",
+            "unit": None
+        },
+        "Price": {
+            "description": "Current stock price",
+            "unit": "USD"
+        },
+        "Price/Earnings": {
+            "description": "Price-to-Earnings ratio",
+            "unit": "ratio"
+        },
+        "Dividend Yield": {
+            "description": "Annual dividend yield",
+            "unit": "percentage"
+        },
+        "Earnings/Share": {
+            "description": "Earnings per share",
+            "unit": "USD"
+        },
+        "52 Week Low": {
+            "description": "52-week low stock price",
+            "unit": "USD"
+        },
+        "52 Week High": {
+            "description": "52-week high stock price",
+            "unit": "USD"
+        },
+        "Market Cap": {
+            "description": "Market capitalization",
+            "unit": "USD"
+        },
+        "EBITDA": {
+            "description": "Earnings before interest, taxes, depreciation, and amortization",
+            "unit": "USD"
+        },
+        "Price/Sales": {
+            "description": "Price-to-Sales ratio",
+            "unit": "ratio"
+        },
+        "Price/Book": {
+            "description": "Price-to-Book ratio",
+            "unit": "ratio"
+        },
+        "SEC Filings": {
+            "description": "SEC filings URL",
+            "unit": None
+        }
+    }
+    
+    for col_name in df.columns:
+        # Determine data type
+        dtype = df[col_name].dtype
+        
+        if dtype == 'object':
+            data_type = DataType.STRING
+        elif dtype in ['int64', 'int32', 'int16', 'int8']:
+            data_type = DataType.INTEGER
+        elif dtype in ['float64', 'float32']:
+            data_type = DataType.FLOAT
+        else:
+            data_type = DataType.STRING
+        
+        # Get sample values (non-null, first 3)
+        sample_values = df[col_name].dropna().head(3).astype(str).tolist()
+        
+        # Get description and unit from predefined info
+        info = column_info.get(col_name, {})
+        description = info.get("description", col_name.replace('_', ' '))
+        unit = info.get("unit", None)
+
+        normalized_name = normalize_column_name(col_name)
+        
+        columns.append(ColumnMetadata(
+            name=normalized_name,
+            data_type=data_type,
+            unit=unit,
+            description=description,
+            example_values=sample_values,
+            nullable=df[col_name].isna().any()
+        ))
+    
     return TableMetadata(
         name="sp500_companies",
         description="Financial information for S&P 500 companies including market data, fundamentals, and sector classification",
         time_granularity="Snapshot (single point in time per company)",
-        row_count=503,  # Approximate, update after loading
-        columns=[
-            ColumnMetadata(
-                name="Symbol",
-                data_type=DataType.STRING,
-                unit=None,
-                description="Stock ticker symbol",
-                example_values=["AAPL", "MSFT", "GOOGL"],
-                nullable=False
-            ),
-            ColumnMetadata(
-                name="Security",
-                data_type=DataType.STRING,
-                unit=None,
-                description="Company name or security description",
-                example_values=["Apple Inc.", "Microsoft Corporation"],
-                nullable=False
-            ),
-            ColumnMetadata(
-                name="Sector",
-                data_type=DataType.STRING,
-                unit=None,
-                description="GICS sector classification",
-                example_values=["Information Technology", "Health Care", "Financials"],
-                nullable=False
-            ),
-            ColumnMetadata(
-                name="Sub_Industry",
-                data_type=DataType.STRING,
-                unit=None,
-                description="GICS sub-industry classification",
-                example_values=["Technology Hardware, Storage & Peripherals", "Pharmaceuticals"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Headquarters_Location",
-                data_type=DataType.STRING,
-                unit=None,
-                description="City and state of company headquarters",
-                example_values=["Cupertino, California", "Redmond, Washington"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Date_added",
-                data_type=DataType.DATE,
-                unit=None,
-                description="Date when company was added to S&P 500 index",
-                example_values=["1982-11-30", "1994-06-01"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="CIK",
-                data_type=DataType.INTEGER,
-                unit=None,
-                description="Central Index Key (SEC identifier)",
-                example_values=["320193", "789019"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Founded",
-                data_type=DataType.STRING,
-                unit=None,
-                description="Year company was founded",
-                example_values=["1976", "1975"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Market_Cap",
-                data_type=DataType.FLOAT,
-                unit="USD (millions)",
-                description="Market capitalization",
-                example_values=["2800000", "2400000"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Price",
-                data_type=DataType.FLOAT,
-                unit="USD",
-                description="Current stock price",
-                example_values=["178.25", "380.50"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Revenue",
-                data_type=DataType.FLOAT,
-                unit="USD (millions)",
-                description="Annual revenue",
-                example_values=["394328", "211915"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Net_Income",
-                data_type=DataType.FLOAT,
-                unit="USD (millions)",
-                description="Annual net income",
-                example_values=["99803", "72361"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Employees",
-                data_type=DataType.INTEGER,
-                unit="count",
-                description="Number of employees",
-                example_values=["164000", "221000"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="PE_Ratio",
-                data_type=DataType.FLOAT,
-                unit="ratio",
-                description="Price-to-Earnings ratio",
-                example_values=["28.5", "32.1"],
-                nullable=True
-            ),
-            ColumnMetadata(
-                name="Dividend_Yield",
-                data_type=DataType.FLOAT,
-                unit="percentage",
-                description="Annual dividend yield as percentage",
-                example_values=["0.52", "0.75"],
-                nullable=True
-            ),
-        ]
+        row_count=len(df),
+        columns=columns
     )
+
+def normalize_column_name(name: str) -> str:
+    name = name.strip().lower()
+    name = re.sub(r"[^\w\s]", "_", name)   # replace /, %, etc.
+    name = re.sub(r"\s+", "_", name)       # spaces → underscore
+    name = re.sub(r"_+", "_", name)        # collapse underscores
+    if name[0].isdigit():
+        name = f"week_{name}"              # avoid leading digit
+    return name
 
 
 class DatabaseMetadataManager:

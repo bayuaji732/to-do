@@ -192,13 +192,13 @@
 
 2. Intent + Entities → Planner Agent
    └─> Step 1: DATA_RETRIEVAL
-       SQL: SELECT Security, Market_Cap FROM sp500_companies WHERE Symbol = 'AAPL'
+       SQL: SELECT name market_cap FROM sp500_companies WHERE Symbol = 'AAPL'
    └─> Step 2: SYNTHESIS
        Format and present result
 
 3. Plan → Executor
    └─> Execute Step 1 (Data Retrieval Agent)
-       Result: [{Security: "Apple Inc.", Market_Cap: 2800000}]
+       Result: [{name: "Apple Inc.", market_Cap: 2800000}]
    └─> Execute Step 2 (Synthesis Agent)
        Generate response
 
@@ -215,7 +215,7 @@
 
 2. Intent + Entities → Planner Agent
    └─> Step 1: DATA_RETRIEVAL
-       SQL: SELECT Symbol, Security, Revenue FROM sp500_companies
+       SQL: SELECT symbol, name, revenue FROM sp500_companies
             WHERE Symbol IN ('AAPL', 'MSFT')
    └─> Step 2: ANALYSIS
        Compare values, compute difference and percentage

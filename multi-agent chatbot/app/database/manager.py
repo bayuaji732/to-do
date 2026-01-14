@@ -8,6 +8,7 @@ from pathlib import Path
 import logging
 
 from app.database.metadata import DatabaseMetadataManager
+from app.database.metadata import normalize_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +35,13 @@ class DatabaseManager:
         # Load CSV data
         if self.csv_path.exists():
             logger.info(f"Loading data from {self.csv_path}")
-            self.conn.execute(f"""
+
+            df = pd.read_csv(self.csv_path)
+            df.columns = [normalize_column_name(c) for c in df.columns]
+
+            self.conn.execute("""
                 CREATE OR REPLACE TABLE sp500_companies AS 
-                SELECT * FROM read_csv_auto('{self.csv_path}')
+                SELECT * FROM df
             """)
             
             # Update row count in metadata

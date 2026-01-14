@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.api import routes
+from app.api.routes import app as routes_app, set_dependencies
 from app.database.manager import DatabaseManager
 from app.services.orchestrator import MultiAgentOrchestrator
 from app.config import settings
@@ -18,6 +18,10 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Global state
+db_manager: Optional[DatabaseManager] = None
+orchestrator: Optional[MultiAgentOrchestrator] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,6 +40,8 @@ async def lifespan(app: FastAPI):
 
         # Initialize orchestrator
         orchestrator = MultiAgentOrchestrator(db_manager)
+
+        set_dependencies(db_manager, orchestrator)
 
         logger.info("Application started successfully")
 
@@ -70,17 +76,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(routes.app)
-
-# Global state
-db_manager: Optional[DatabaseManager] = None
-orchestrator: Optional[MultiAgentOrchestrator] = None
+app.include_router(routes_app)
 
 if __name__ == "__main__":
     import uvicorn
     
     uvicorn.run(
-        "api.main:app",
+        "app.main:app",
         host=settings.api_host,
         port=settings.api_port,
         reload=True

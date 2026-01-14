@@ -98,7 +98,7 @@ def display_chart(chart_config: Dict):
     """Display Plotly chart."""
     try:
         fig = go.Figure(json.loads(chart_config["data"]))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     except Exception as e:
         st.error(f"Could not display chart: {str(e)}")
 
@@ -110,7 +110,7 @@ def display_query_results(results: list):
             st.code(result["sql_query"], language="sql")
             if result["data"]:
                 df = pd.DataFrame(result["data"])
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df, width="stretch")
 
 
 # Initialize session state
@@ -170,7 +170,7 @@ if st.session_state.get("show_sample"):
     with st.expander("📊 Sample Data", expanded=True):
         sample_df = get_sample_data()
         if sample_df is not None:
-            st.dataframe(sample_df, use_container_width=True)
+            st.dataframe(sample_df, width="stretch")
         st.session_state.show_sample = False
 
 # Display schema if requested
@@ -269,7 +269,7 @@ if user_input:
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: gray;'>"
-    "Multi-Agent GenAI System | Powered by Claude & LangGraph"
+    "Multi-Agent GenAI System | Powered by OpenAI & LangGraph"
     "</div>",
     unsafe_allow_html=True
 )

@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from app.database.manager import DatabaseManager
 from app.services.orchestrator import MultiAgentOrchestrator
@@ -15,15 +15,30 @@ logger = logging.getLogger(__name__)
 
 app = APIRouter()
 
-db_manager: Optional[DatabaseManager] = None
-orchestrator: Optional[MultiAgentOrchestrator] = None
+_db_manager: Optional[DatabaseManager] = None
+_orchestrator: Optional[MultiAgentOrchestrator] = None
+
+def set_dependencies(db: DatabaseManager, orch: MultiAgentOrchestrator):
+    """Set global dependencies from main.py"""
+    global _db_manager, _orchestrator
+    _db_manager = db
+    _orchestrator = orch
+
+
+def get_db_manager() -> DatabaseManager:
+    if _db_manager is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+    return _db_manager
+
+
+def get_orchestrator() -> MultiAgentOrchestrator:
+    if _orchestrator is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    return _orchestrator
 
 @app.get("/", response_model=HealthResponse)
-async def health_check():
+async def health_check(db_manager: DatabaseManager = Depends(get_db_manager)):
     """Health check endpoint."""
-    if not db_manager:
-        raise HTTPException(status_code=503, detail="Database not initialized")
-    
     try:
         # Test database connection
         result = db_manager.execute_query("SELECT COUNT(*) as count FROM sp500_companies")
@@ -39,7 +54,7 @@ async def health_check():
 
 
 @app.post("/query", response_model=QueryResponse)
-async def process_query(request: QueryRequest):
+async def process_query(request: QueryRequest, orchestrator: MultiAgentOrchestrator = Depends(get_orchestrator)):
     """
     Process a user query through the multi-agent system.
     
@@ -48,10 +63,7 @@ async def process_query(request: QueryRequest):
         
     Returns:
         QueryResponse with answer and metadata
-    """
-    if not orchestrator:
-        raise HTTPException(status_code=503, detail="System not initialized")
-    
+    """    
     try:
         logger.info(f"Received query: {request.query}")
         
@@ -66,17 +78,14 @@ async def process_query(request: QueryRequest):
 
 
 @app.post("/reset")
-async def reset_conversation():
+async def reset_conversation(orchestrator: MultiAgentOrchestrator = Depends(get_orchestrator)):
     """Reset conversation history."""
-    if not orchestrator:
-        raise HTTPException(status_code=503, detail="System not initialized")
-    
     orchestrator.reset_conversation()
     return {"status": "success", "message": "Conversation reset"}
 
 
 @app.get("/schema")
-async def get_schema():
+async def get_schema(db_manager: DatabaseManager = Depends(get_db_manager)):
     """Get database schema information."""
     if not db_manager:
         raise HTTPException(status_code=503, detail="Database not initialized")
@@ -92,7 +101,7 @@ async def get_schema():
 
 
 @app.get("/sample-data")
-async def get_sample_data(limit: int = 5):
+async def get_sample_data(limit: int = 5, db_manager: DatabaseManager = Depends(get_db_manager)):
     """Get sample data from the dataset."""
     if not db_manager:
         raise HTTPException(status_code=503, detail="Database not initialized")
