@@ -1,0 +1,11 @@
+# run API
+uv run uvicorn main:app --reload
+
+# run Inngest
+npx inngest-cli@latest dev -u http://127.0.0.1:8000/api/inngest --no-discovery
+
+# run qdrant
+docker run -d --name qdrant -p 6333:6333 -v "$(pwd)/qdrant_storage:/qdrant/storage" qdrant/qdrant
+
+# run Streamlit
+uv run streamlit run streamlit_app.py
