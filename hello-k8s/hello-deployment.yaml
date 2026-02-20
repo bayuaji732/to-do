@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-k8s
+  template:
+    metadata:
+      labels:
+        app: hello-k8s
+    spec:
+      containers:
+        - name: hello-container
+          image: hello-k8s:v1
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MESSAGE               # Create environment variable from ConfigMap
+              valueFrom:
+                configMapKeyRef:
+                  name: hello-config
+                  key: MESSAGE
+            - name: API_KEY               # Create environment variable from Secret
+              valueFrom:
+                secretKeyRef:
+                  name: hello-secret
+                  key: API_KEY

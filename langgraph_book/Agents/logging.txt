@@ -1,0 +1,11 @@
+Conversation Log:
+User: hi I am bay
+AI: Hello, Bay! How can I assist you today?
+User: tell me a sus joke
+AI: Sure! Here you go:
+
+Why did the scarecrow win an award?
+
+Because he was outstanding in his field... but the way he was looking at me was a little sus!
+
+End of Conversation Log.

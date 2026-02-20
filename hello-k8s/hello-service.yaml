@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-service
+spec:
+  selector:
+    app: hello-k8s      # Finds Pods with this label
+  ports:
+    - port: 80          # Port the Service will listen on
+      targetPort: 3000  # Port on the Pod to forward to
+  type: LoadBalancer    # Exposes the service to the cluster

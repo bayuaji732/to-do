@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-pod               # Name of our pod
+spec:
+  containers:                   # List of containers in the pod
+    - name: hello-container     # Name of our container
+      image: hello-k8s:v1       # Image to use
+      ports:
+      - containerPort: 3000   # Port to expose
