@@ -1,0 +1,5 @@
+byteplus-python-sdk-v2
+python-dotenv
+httpx
+pydantic
+sniffio
